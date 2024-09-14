@@ -173,11 +173,11 @@ final class ObjectNormalizer extends AbstractObjectNormalizer
             return false;
         }
 
-        $class = \is_object($classOrObject) ? \get_class($classOrObject) : $classOrObject;
+        $class = $this->getClass($classOrObject);
 
         if ($context['_read_attributes'] ?? true) {
             if (!isset(self::$isReadableCache[$class.$attribute])) {
-                self::$isReadableCache[$class.$attribute] = (\is_object($classOrObject) && $this->propertyAccessor->isReadable($classOrObject, $attribute)) || $this->propertyInfoExtractor->isReadable($class, $attribute) || $this->hasAttributeAccessorMethod($class, $attribute);
+                self::$isReadableCache[$class.$attribute] = $this->isReadable($classOrObject, $attribute);
             }
 
             return self::$isReadableCache[$class.$attribute];
@@ -212,5 +212,29 @@ final class ObjectNormalizer extends AbstractObjectNormalizer
         return !$method->isStatic()
             && !$method->getAttributes(Ignore::class)
             && !$method->getNumberOfRequiredParameters();
+    }
+
+    private function isReadable($classOrObject, string $attribute): bool
+    {
+        $class = $this->getClass($classOrObject);
+
+        if ($this->propertyInfoExtractor->isReadable($class, $attribute)) {
+            return true;
+        }
+
+        if ($this->hasAttributeAccessorMethod($class, $attribute)) {
+            return true;
+        }
+
+        if (\is_object($classOrObject) && $this->propertyAccessor->isReadable($classOrObject, $attribute)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getClass($classOrObject): string
+    {
+        return \is_object($classOrObject) ? \get_class($classOrObject) : $classOrObject;
     }
 }
